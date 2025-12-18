@@ -189,11 +189,16 @@ class JiraIssue(BaseModel):
         if parent := fields.get("parent"):
             parent_key = parent.get("key")
         
+        # Handle description - can be string or ADF (Atlassian Document Format)
+        description = fields.get("description")
+        if isinstance(description, dict):
+            description = _extract_text_from_adf(description)
+        
         return cls(
             id=data.get("id", ""),
             key=data.get("key", ""),
             summary=fields.get("summary", ""),
-            description=fields.get("description"),
+            description=description,
             status=status,
             issuetype=issue_type,
             priority=priority,

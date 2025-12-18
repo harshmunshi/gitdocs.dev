@@ -8,6 +8,7 @@ from rich.table import Table
 from rich.panel import Panel
 from rich.markdown import Markdown
 from rich.prompt import Prompt, Confirm
+from rich.markup import escape
 
 from gitdocs.core.app import get_context
 from gitdocs.core.errors import ConfigError, JiraError
@@ -106,9 +107,12 @@ def list_command(
             if status:
                 parts.append(f'statusCategory = "{status}"')
             
-            query = " AND ".join(parts) if parts else "ORDER BY updated DESC"
-            if parts:
-                query += " ORDER BY updated DESC"
+            # JQL needs at least one condition - use updated filter if no other filters
+            if not parts:
+                # Get issues updated in last 30 days as a sensible default
+                parts.append("updated >= -30d")
+            
+            query = " AND ".join(parts) + " ORDER BY updated DESC"
         
         console.print(f"[dim]Query:[/] {query}\n")
         
@@ -143,20 +147,27 @@ def list_command(
         table.add_column("Assignee", style="dim")
         
         for issue in result.issues:
-            status_style = ""
+            # Escape text to prevent Rich markup interpretation
+            summary = escape(issue.summary[:50] + "..." if len(issue.summary) > 50 else issue.summary)
+            assignee = escape(issue.assignee.display_name) if issue.assignee else "-"
+            issue_type = escape(issue.issue_type.name) if issue.issue_type else "-"
+            status_name = escape(issue.status.name) if issue.status else "-"
+            
+            # Determine status style based on category
+            status_display = status_name
             if issue.status:
                 cat = issue.status.status_category
                 if cat == "Done":
-                    status_style = "green"
+                    status_display = f"[green]{status_name}[/green]"
                 elif cat == "In Progress":
-                    status_style = "yellow"
+                    status_display = f"[yellow]{status_name}[/yellow]"
             
             table.add_row(
                 issue.key,
-                issue.issue_type.name if issue.issue_type else "-",
-                f"[{status_style}]{issue.status.name if issue.status else '-'}[/]",
-                issue.summary[:50] + "..." if len(issue.summary) > 50 else issue.summary,
-                issue.assignee.display_name if issue.assignee else "-",
+                issue_type,
+                status_display,
+                summary,
+                assignee,
             )
         
         console.print(table)
