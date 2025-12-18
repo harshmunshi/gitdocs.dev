@@ -214,3 +214,62 @@ def set_openai_api_key(key: str) -> None:
     """Store OpenAI API key."""
     set_secret(OPENAI_SERVICE, "api_key", key)
 
+
+def clear_all_secrets() -> None:
+    """Clear all stored secrets."""
+    # Delete from keyring
+    for service in [JIRA_SERVICE, CONFLUENCE_SERVICE, OPENAI_SERVICE]:
+        try:
+            delete_secret(service, "api_token")
+            delete_secret(service, "api_key")
+        except Exception:
+            pass
+    
+    # Clear fallback file
+    creds_path = get_credentials_path()
+    if creds_path.exists():
+        creds_path.unlink()
+
+
+class SecretsManager:
+    """
+    High-level interface for managing secrets.
+    
+    Provides a convenient class-based API for storing and retrieving
+    API tokens and credentials.
+    """
+    
+    def get_jira_token(self, base_url: str | None = None) -> str | None:
+        """Get Jira API token."""
+        try:
+            return get_jira_api_token()
+        except AuthError:
+            return None
+    
+    def store_jira_token(self, base_url: str, token: str) -> None:
+        """Store Jira API token."""
+        set_jira_api_token(token)
+    
+    def get_confluence_token(self, base_url: str | None = None) -> str | None:
+        """Get Confluence API token."""
+        try:
+            return get_confluence_api_token()
+        except AuthError:
+            return None
+    
+    def store_confluence_token(self, base_url: str, token: str) -> None:
+        """Store Confluence API token."""
+        set_confluence_api_token(token)
+    
+    def get_openai_key(self) -> str | None:
+        """Get OpenAI API key."""
+        return get_openai_api_key()
+    
+    def store_openai_key(self, key: str) -> None:
+        """Store OpenAI API key."""
+        set_openai_api_key(key)
+    
+    def clear_all(self) -> None:
+        """Clear all stored secrets."""
+        clear_all_secrets()
+

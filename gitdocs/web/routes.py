@@ -1,5 +1,6 @@
 """API routes for the web server."""
 
+from pathlib import Path
 from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Query
@@ -8,6 +9,8 @@ from pydantic import BaseModel
 from gitdocs.core.app import get_context
 from gitdocs.core.config import load_config, load_repo_config, load_user_config
 from gitdocs.core.errors import ConfigError, AuthError, RepoNotFoundError
+from gitdocs.core.paths import get_user_config_path, get_repo_config_path
+from gitdocs.core.secrets import SecretsManager
 
 router = APIRouter()
 
@@ -21,9 +24,11 @@ class ConfigResponse(BaseModel):
     
     jira_configured: bool
     jira_url: Optional[str] = None
+    jira_email: Optional[str] = None
     jira_project: Optional[str] = None
     confluence_configured: bool
     confluence_url: Optional[str] = None
+    confluence_email: Optional[str] = None
     confluence_space: Optional[str] = None
     llm_provider: str = "none"
 
@@ -66,9 +71,11 @@ async def get_config():
         return ConfigResponse(
             jira_configured=config.jira is not None,
             jira_url=config.jira.base_url if config.jira else None,
+            jira_email=config.jira.email if config.jira else None,
             jira_project=config.jira.project_key if config.jira else None,
             confluence_configured=config.confluence is not None,
             confluence_url=config.confluence.base_url if config.confluence else None,
+            confluence_email=config.confluence.email if config.confluence else None,
             confluence_space=config.confluence.space_key if config.confluence else None,
             llm_provider=config.llm.provider,
         )
@@ -330,6 +337,182 @@ async def list_spaces():
             }
             for space in spaces
         ]
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# =============================================================================
+# Credentials endpoints
+# =============================================================================
+
+class JiraCredentials(BaseModel):
+    """Jira credentials input."""
+    url: Optional[str] = None
+    email: Optional[str] = None
+    project: Optional[str] = None
+    token: Optional[str] = None
+
+
+class ConfluenceCredentials(BaseModel):
+    """Confluence credentials input."""
+    url: Optional[str] = None
+    email: Optional[str] = None
+    space: Optional[str] = None
+    token: Optional[str] = None
+
+
+class OpenAICredentials(BaseModel):
+    """OpenAI credentials input."""
+    key: Optional[str] = None
+
+
+@router.post("/credentials/jira")
+async def save_jira_credentials(creds: JiraCredentials):
+    """Save Jira credentials."""
+    import yaml
+    
+    try:
+        # Get user config path
+        user_config_path = get_user_config_path()
+        user_config_path.parent.mkdir(parents=True, exist_ok=True)
+        
+        # Load existing config or create new
+        if user_config_path.exists():
+            with open(user_config_path) as f:
+                config = yaml.safe_load(f) or {}
+        else:
+            config = {}
+        
+        # Update Jira config
+        if "jira" not in config:
+            config["jira"] = {}
+        
+        if creds.url:
+            config["jira"]["base_url"] = creds.url.rstrip("/")
+        if creds.email:
+            config["jira"]["email"] = creds.email
+        if creds.project:
+            config["jira"]["project_key"] = creds.project
+        
+        # Save config
+        with open(user_config_path, "w") as f:
+            yaml.safe_dump(config, f, default_flow_style=False)
+        
+        # Save token to secrets if provided
+        if creds.token:
+            secrets = SecretsManager()
+            base_url = creds.url or config["jira"].get("base_url", "")
+            if base_url:
+                secrets.store_jira_token(base_url, creds.token)
+        
+        return {"status": "ok", "message": "Jira settings saved"}
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/credentials/confluence")
+async def save_confluence_credentials(creds: ConfluenceCredentials):
+    """Save Confluence credentials."""
+    import yaml
+    
+    try:
+        # Get user config path
+        user_config_path = get_user_config_path()
+        user_config_path.parent.mkdir(parents=True, exist_ok=True)
+        
+        # Load existing config or create new
+        if user_config_path.exists():
+            with open(user_config_path) as f:
+                config = yaml.safe_load(f) or {}
+        else:
+            config = {}
+        
+        # Update Confluence config
+        if "confluence" not in config:
+            config["confluence"] = {}
+        
+        if creds.url:
+            config["confluence"]["base_url"] = creds.url.rstrip("/")
+        if creds.email:
+            config["confluence"]["email"] = creds.email
+        if creds.space:
+            config["confluence"]["space_key"] = creds.space
+        
+        # Save config
+        with open(user_config_path, "w") as f:
+            yaml.safe_dump(config, f, default_flow_style=False)
+        
+        # Save token to secrets if provided
+        if creds.token:
+            secrets = SecretsManager()
+            base_url = creds.url or config["confluence"].get("base_url", "")
+            if base_url:
+                secrets.store_confluence_token(base_url, creds.token)
+        
+        return {"status": "ok", "message": "Confluence settings saved"}
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/credentials/openai")
+async def save_openai_credentials(creds: OpenAICredentials):
+    """Save OpenAI API key."""
+    import yaml
+    
+    try:
+        # Get user config path
+        user_config_path = get_user_config_path()
+        user_config_path.parent.mkdir(parents=True, exist_ok=True)
+        
+        # Load existing config or create new
+        if user_config_path.exists():
+            with open(user_config_path) as f:
+                config = yaml.safe_load(f) or {}
+        else:
+            config = {}
+        
+        # Update LLM config
+        if "llm" not in config:
+            config["llm"] = {}
+        
+        config["llm"]["provider"] = "openai"
+        
+        # Save config
+        with open(user_config_path, "w") as f:
+            yaml.safe_dump(config, f, default_flow_style=False)
+        
+        # Save key to secrets if provided
+        if creds.key:
+            secrets = SecretsManager()
+            secrets.store_openai_key(creds.key)
+        
+        return {"status": "ok", "message": "OpenAI key saved"}
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.delete("/credentials")
+async def clear_credentials():
+    """Clear all stored credentials."""
+    try:
+        secrets = SecretsManager()
+        
+        # Try to clear all known credentials
+        try:
+            secrets.clear_all()
+        except Exception:
+            pass
+        
+        # Also clear the user config file
+        user_config_path = get_user_config_path()
+        if user_config_path.exists():
+            user_config_path.unlink()
+        
+        return {"status": "ok", "message": "All credentials cleared"}
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
