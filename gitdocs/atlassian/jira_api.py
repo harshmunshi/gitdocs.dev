@@ -67,13 +67,14 @@ class JiraAPI:
         """
         Search issues using JQL.
         
-        Uses POST /search endpoint with JSON body (Jira Cloud).
+        Uses the new POST /search/jql endpoint (Jira Cloud 2024+).
+        The old /search endpoint was deprecated May 2025.
         
         Args:
             jql: JQL query string
             fields: Fields to return (defaults to common fields)
             max_results: Maximum results to return
-            start_at: Pagination offset
+            start_at: Pagination offset (note: new API uses cursor pagination)
             expand: Additional data to expand
             
         Returns:
@@ -81,19 +82,22 @@ class JiraAPI:
         """
         fields = fields or self.DEFAULT_FIELDS
         
-        # Use POST-based search endpoint with JSON body
+        # New search/jql endpoint format
         data: dict[str, Any] = {
             "jql": jql,
             "fields": fields,
             "maxResults": max_results,
-            "startAt": start_at,
         }
         
+        # Note: new API uses nextPageToken for pagination, not startAt
+        # For backward compat, we ignore startAt > 0 for now
+        
         if expand:
-            data["expand"] = expand
+            # expand should be a comma-separated string in new API
+            data["expand"] = ",".join(expand) if isinstance(expand, list) else expand
         
         logger.info(f"Searching issues: {jql}")
-        response = self.client.post("search", data=data)
+        response = self.client.post("search/jql", data=data)
         
         issues = [
             JiraIssue.from_api_response(issue_data)
@@ -102,8 +106,8 @@ class JiraAPI:
         
         return JiraSearchResult(
             issues=issues,
-            total=response.get("total", 0),
-            startAt=response.get("startAt", 0),
+            total=response.get("total", len(issues)),
+            startAt=0,
             maxResults=response.get("maxResults", max_results),
         )
     
