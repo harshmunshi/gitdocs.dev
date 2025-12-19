@@ -4,25 +4,22 @@ from pathlib import Path
 from typing import Any
 
 import yaml
-from pydantic import BaseModel, Field, SecretStr, field_validator
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import BaseModel, Field, field_validator
 
-from gitdocs.core.paths import (
-    get_repo_config_path,
-    get_user_config_path,
-    get_repo_root,
-)
 from gitdocs.core.errors import ConfigError
+from gitdocs.core.paths import get_repo_config_path, get_user_config_path
 
 
 class JiraConfig(BaseModel):
     """Jira connection configuration."""
 
-    base_url: str = Field(..., description="Jira Cloud base URL (e.g., https://company.atlassian.net)")
+    base_url: str = Field(
+        ..., description="Jira Cloud base URL (e.g., https://company.atlassian.net)"
+    )
     email: str = Field(..., description="Jira account email")
     project_key: str | None = Field(None, description="Default Jira project key")
     default_filters: list[str] = Field(default_factory=list, description="Default JQL filters")
-    
+
     @field_validator("base_url")
     @classmethod
     def validate_base_url(cls, v: str) -> str:
@@ -39,7 +36,7 @@ class ConfluenceConfig(BaseModel):
     base_url: str = Field(..., description="Confluence Cloud base URL")
     email: str = Field(..., description="Confluence account email")
     space_key: str | None = Field(None, description="Default Confluence space key")
-    
+
     @field_validator("base_url")
     @classmethod
     def validate_base_url(cls, v: str) -> str:
@@ -53,21 +50,21 @@ class ConfluenceConfig(BaseModel):
 class LLMConfig(BaseModel):
     """LLM integration configuration."""
 
-    provider: str = Field("openai", description="LLM provider (openai, anthropic, etc.)")
-    model: str = Field("gpt-4o-mini", description="Model to use")
-    temperature: float = Field(0.3, ge=0.0, le=2.0, description="Generation temperature")
+    provider: str = Field(default="openai", description="LLM provider (openai, anthropic, etc.)")
+    model: str = Field(default="gpt-4o-mini", description="Model to use")
+    temperature: float = Field(default=0.3, ge=0.0, le=2.0, description="Generation temperature")
     confidence_threshold: float = Field(
-        0.7, ge=0.0, le=1.0, description="Minimum confidence for suggestions"
+        default=0.7, ge=0.0, le=1.0, description="Minimum confidence for suggestions"
     )
-    max_tokens: int = Field(1000, gt=0, description="Maximum tokens for generation")
+    max_tokens: int = Field(default=1000, gt=0, description="Maximum tokens for generation")
 
 
 class CacheConfig(BaseModel):
     """Cache configuration."""
 
-    enabled: bool = Field(True, description="Enable caching")
-    ttl_seconds: int = Field(300, gt=0, description="Cache TTL in seconds")
-    max_size_mb: int = Field(100, gt=0, description="Maximum cache size in MB")
+    enabled: bool = Field(default=True, description="Enable caching")
+    ttl_seconds: int = Field(default=300, gt=0, description="Cache TTL in seconds")
+    max_size_mb: int = Field(default=100, gt=0, description="Maximum cache size in MB")
 
 
 class RepoConfig(BaseModel):
@@ -88,12 +85,14 @@ class RepoConfig(BaseModel):
 class UserConfig(BaseModel):
     """User-level configuration (stored in ~/.config/gitdocs/config.yml)."""
 
-    default_editor: str = Field("vim", description="Default editor for editing")
-    theme: str = Field("dark", description="TUI theme (dark/light)")
-    llm: LLMConfig = Field(default_factory=LLMConfig)
-    cache: CacheConfig = Field(default_factory=CacheConfig)
-    audit_log: bool = Field(True, description="Enable audit logging")
-    dry_run_by_default: bool = Field(True, description="Enable dry-run by default for writes")
+    default_editor: str = Field(default="vim", description="Default editor for editing")
+    theme: str = Field(default="dark", description="TUI theme (dark/light)")
+    llm: LLMConfig = Field(default_factory=lambda: LLMConfig())
+    cache: CacheConfig = Field(default_factory=lambda: CacheConfig())
+    audit_log: bool = Field(default=True, description="Enable audit logging")
+    dry_run_by_default: bool = Field(
+        default=True, description="Enable dry-run by default for writes"
+    )
 
 
 class GitDocsConfig(BaseModel):
@@ -101,19 +100,19 @@ class GitDocsConfig(BaseModel):
 
     repo: RepoConfig
     user: UserConfig
-    
+
     @property
     def jira(self) -> JiraConfig | None:
         return self.repo.jira
-    
+
     @property
     def confluence(self) -> ConfluenceConfig | None:
         return self.repo.confluence
-    
+
     @property
     def llm(self) -> LLMConfig:
         return self.user.llm
-    
+
     @property
     def cache(self) -> CacheConfig:
         return self.user.cache
@@ -123,7 +122,7 @@ def load_yaml_config(path: Path) -> dict[str, Any]:
     """Load a YAML configuration file."""
     if not path.exists():
         return {}
-    
+
     try:
         with path.open() as f:
             data = yaml.safe_load(f) or {}
@@ -166,16 +165,16 @@ def load_user_config() -> UserConfig:
 def load_config(repo_root: Path | None = None) -> GitDocsConfig:
     """
     Load combined configuration from repo and user configs.
-    
+
     Args:
         repo_root: Repository root path. If None, will be discovered.
-        
+
     Returns:
         Combined GitDocsConfig instance.
     """
     repo_config = load_repo_config(repo_root)
     user_config = load_user_config()
-    
+
     return GitDocsConfig(repo=repo_config, user=user_config)
 
 
@@ -191,4 +190,3 @@ def save_user_config(config: UserConfig) -> None:
     config_path = get_user_config_path()
     data = config.model_dump(exclude_none=True)
     save_yaml_config(config_path, data)
-

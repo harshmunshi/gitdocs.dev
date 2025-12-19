@@ -2,8 +2,8 @@
 
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi import FastAPI, Request
+from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
@@ -43,7 +43,7 @@ async def home(request: Request):
     template_path = TEMPLATES_DIR / "index.html"
     if template_path.exists():
         return templates.TemplateResponse("index.html", {"request": request})
-    
+
     # Fallback to inline HTML
     return HTMLResponse(content=get_default_html())
 
@@ -826,7 +826,7 @@ def get_default_html() -> str:
 
 def get_admin_html() -> str:
     """Return admin configuration page HTML."""
-    return f"""
+    return """
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -837,7 +837,7 @@ def get_admin_html() -> str:
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        :root {{
+        :root {
             --bg-primary: #f8f9fa;
             --bg-white: #ffffff;
             --bg-dark: #1a1d21;
@@ -850,38 +850,38 @@ def get_admin_html() -> str:
             --success: #10b981;
             --warning: #f59e0b;
             --error: #ef4444;
-        }}
+        }
         
-        * {{ box-sizing: border-box; margin: 0; padding: 0; }}
+        * { box-sizing: border-box; margin: 0; padding: 0; }
         
-        body {{
+        body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
             background: var(--bg-primary);
             color: var(--text-primary);
             line-height: 1.6;
             min-height: 100vh;
-        }}
+        }
         
         /* Header */
-        header {{
+        header {
             background: var(--bg-white);
             border-bottom: 1px solid var(--border);
             padding: 0 2rem;
             position: sticky;
             top: 0;
             z-index: 100;
-        }}
+        }
         
-        .header-content {{
+        .header-content {
             max-width: 1200px;
             margin: 0 auto;
             display: flex;
             justify-content: space-between;
             align-items: center;
             height: 64px;
-        }}
+        }
         
-        .logo {{
+        .logo {
             display: flex;
             align-items: center;
             gap: 0.75rem;
@@ -889,9 +889,9 @@ def get_admin_html() -> str:
             font-size: 1.25rem;
             color: var(--text-primary);
             text-decoration: none;
-        }}
+        }
         
-        .logo-icon {{
+        .logo-icon {
             width: 36px;
             height: 36px;
             background: var(--bg-dark);
@@ -900,110 +900,110 @@ def get_admin_html() -> str:
             align-items: center;
             justify-content: center;
             color: white;
-        }}
+        }
         
-        nav {{ display: flex; align-items: center; gap: 2rem; }}
-        nav a {{ color: var(--text-secondary); text-decoration: none; font-size: 0.9rem; font-weight: 500; }}
-        nav a:hover {{ color: var(--text-primary); }}
-        nav a.active {{ color: var(--text-primary); }}
+        nav { display: flex; align-items: center; gap: 2rem; }
+        nav a { color: var(--text-secondary); text-decoration: none; font-size: 0.9rem; font-weight: 500; }
+        nav a:hover { color: var(--text-primary); }
+        nav a.active { color: var(--text-primary); }
         
         /* Main Content */
-        .container {{
+        .container {
             max-width: 800px;
             margin: 0 auto;
             padding: 2rem;
-        }}
+        }
         
-        .page-header {{
+        .page-header {
             margin-bottom: 2rem;
-        }}
+        }
         
-        .page-header h1 {{
+        .page-header h1 {
             font-size: 1.75rem;
             font-weight: 700;
             margin-bottom: 0.5rem;
-        }}
+        }
         
-        .page-header p {{
+        .page-header p {
             color: var(--text-secondary);
-        }}
+        }
         
         /* Cards */
-        .card {{
+        .card {
             background: var(--bg-white);
             border: 1px solid var(--border);
             border-radius: 12px;
             padding: 1.5rem;
             margin-bottom: 1.5rem;
-        }}
+        }
         
-        .card-header {{
+        .card-header {
             display: flex;
             align-items: center;
             justify-content: space-between;
             margin-bottom: 1.5rem;
             padding-bottom: 1rem;
             border-bottom: 1px solid var(--border);
-        }}
+        }
         
-        .card-title {{
+        .card-title {
             display: flex;
             align-items: center;
             gap: 0.75rem;
             font-size: 1.1rem;
             font-weight: 600;
-        }}
+        }
         
-        .card-title svg {{
+        .card-title svg {
             color: var(--text-secondary);
-        }}
+        }
         
-        .card-status {{
+        .card-status {
             display: flex;
             align-items: center;
             gap: 0.5rem;
             font-size: 0.85rem;
-        }}
+        }
         
-        .status-indicator {{
+        .status-indicator {
             width: 8px;
             height: 8px;
             border-radius: 50%;
             background: var(--text-muted);
-        }}
+        }
         
-        .status-indicator.connected {{ background: var(--success); }}
-        .status-indicator.error {{ background: var(--error); }}
+        .status-indicator.connected { background: var(--success); }
+        .status-indicator.error { background: var(--error); }
         
         /* Form Elements */
-        .form-group {{
+        .form-group {
             margin-bottom: 1.25rem;
-        }}
+        }
         
-        .form-row {{
+        .form-row {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 1rem;
-        }}
+        }
         
-        label {{
+        label {
             display: block;
             font-size: 0.875rem;
             font-weight: 500;
             margin-bottom: 0.5rem;
             color: var(--text-primary);
-        }}
+        }
         
-        .label-hint {{
+        .label-hint {
             font-weight: 400;
             color: var(--text-muted);
             font-size: 0.8rem;
-        }}
+        }
         
         input[type="text"],
         input[type="email"],
         input[type="password"],
-        input[type="url"] {{
+        input[type="url"] {
             width: 100%;
             padding: 0.75rem 1rem;
             border: 1px solid var(--border);
@@ -1012,41 +1012,41 @@ def get_admin_html() -> str:
             font-family: inherit;
             background: var(--bg-white);
             transition: border-color 0.2s, box-shadow 0.2s;
-        }}
+        }
         
-        input:focus {{
+        input:focus {
             outline: none;
             border-color: var(--accent-blue);
             box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-        }}
+        }
         
-        input::placeholder {{
+        input::placeholder {
             color: var(--text-muted);
-        }}
+        }
         
-        .input-with-icon {{
+        .input-with-icon {
             position: relative;
-        }}
+        }
         
-        .input-with-icon input {{
+        .input-with-icon input {
             padding-right: 2.5rem;
-        }}
+        }
         
-        .input-icon {{
+        .input-icon {
             position: absolute;
             right: 0.75rem;
             top: 50%;
             transform: translateY(-50%);
             color: var(--text-muted);
             cursor: pointer;
-        }}
+        }
         
-        .input-icon:hover {{
+        .input-icon:hover {
             color: var(--text-secondary);
-        }}
+        }
         
         /* Buttons */
-        .btn {{
+        .btn {
             display: inline-flex;
             align-items: center;
             justify-content: center;
@@ -1059,110 +1059,110 @@ def get_admin_html() -> str:
             cursor: pointer;
             transition: all 0.2s;
             border: none;
-        }}
+        }
         
-        .btn-primary {{
+        .btn-primary {
             background: var(--accent);
             color: white;
-        }}
+        }
         
-        .btn-primary:hover {{
+        .btn-primary:hover {
             background: #2d3138;
-        }}
+        }
         
-        .btn-secondary {{
+        .btn-secondary {
             background: var(--bg-white);
             color: var(--text-primary);
             border: 1px solid var(--border);
-        }}
+        }
         
-        .btn-secondary:hover {{
+        .btn-secondary:hover {
             background: var(--bg-primary);
-        }}
+        }
         
-        .btn-success {{
+        .btn-success {
             background: var(--success);
             color: white;
-        }}
+        }
         
-        .btn-danger {{
+        .btn-danger {
             background: var(--error);
             color: white;
-        }}
+        }
         
-        .btn-sm {{
+        .btn-sm {
             padding: 0.5rem 1rem;
             font-size: 0.85rem;
-        }}
+        }
         
-        .btn-block {{
+        .btn-block {
             width: 100%;
-        }}
+        }
         
-        .btn-group {{
+        .btn-group {
             display: flex;
             gap: 0.75rem;
             margin-top: 1.5rem;
-        }}
+        }
         
         /* Alerts */
-        .alert {{
+        .alert {
             padding: 1rem;
             border-radius: 8px;
             margin-bottom: 1rem;
             display: flex;
             align-items: flex-start;
             gap: 0.75rem;
-        }}
+        }
         
-        .alert-success {{
+        .alert-success {
             background: rgba(16, 185, 129, 0.1);
             color: #047857;
             border: 1px solid rgba(16, 185, 129, 0.2);
-        }}
+        }
         
-        .alert-error {{
+        .alert-error {
             background: rgba(239, 68, 68, 0.1);
             color: #b91c1c;
             border: 1px solid rgba(239, 68, 68, 0.2);
-        }}
+        }
         
-        .alert-info {{
+        .alert-info {
             background: rgba(59, 130, 246, 0.1);
             color: #1d4ed8;
             border: 1px solid rgba(59, 130, 246, 0.2);
-        }}
+        }
         
         /* Help text */
-        .help-text {{
+        .help-text {
             font-size: 0.8rem;
             color: var(--text-muted);
             margin-top: 0.5rem;
-        }}
+        }
         
-        .help-text a {{
+        .help-text a {
             color: var(--accent-blue);
             text-decoration: none;
-        }}
+        }
         
-        .help-text a:hover {{
+        .help-text a:hover {
             text-decoration: underline;
-        }}
+        }
         
         /* Divider */
-        .divider {{
+        .divider {
             height: 1px;
             background: var(--border);
             margin: 1.5rem 0;
-        }}
+        }
         
         /* Hidden class */
-        .hidden {{
+        .hidden {
             display: none !important;
-        }}
+        }
         
         /* Toast */
-        .toast {{
+        .toast {
             position: fixed;
             bottom: 2rem;
             right: 2rem;
@@ -1176,28 +1176,28 @@ def get_admin_html() -> str:
             opacity: 0;
             transition: all 0.3s;
             z-index: 1000;
-        }}
+        }
         
-        .toast.show {{
+        .toast.show {
             transform: translateY(0);
             opacity: 1;
-        }}
+        }
         
-        .toast.success {{
+        .toast.success {
             background: var(--success);
-        }}
+        }
         
-        .toast.error {{
+        .toast.error {
             background: var(--error);
-        }}
+        }
         
-        @media (max-width: 768px) {{
-            .form-row {{
+        @media (max-width: 768px) {
+            .form-row {
                 grid-template-columns: 1fr;
-            }}
+            }
             
-            nav {{ display: none; }}
-        }}
+            nav { display: none; }
+        }
     </style>
 </head>
 <body>
@@ -1433,8 +1433,8 @@ def get_admin_html() -> str:
     
     <script>
         // Load current config on page load
-        async function loadConfig() {{
-            try {{
+        async function loadConfig() {
+            try {
                 const response = await fetch('/api/config');
                 const config = await response.json();
                 
@@ -1450,170 +1450,170 @@ def get_admin_html() -> str:
                 
                 // Test connections
                 testConnections();
-            }} catch (e) {{
+            } catch (e) {
                 console.error('Error loading config:', e);
-            }}
-        }}
+            }
+        }
         
         // Test all connections
-        async function testConnections() {{
-            try {{
-                const response = await fetch('/api/config/test', {{ method: 'POST' }});
+        async function testConnections() {
+            try {
+                const response = await fetch('/api/config/test', { method: 'POST' });
                 const data = await response.json();
                 
                 updateConnectionStatus('jira', data.jira);
                 updateConnectionStatus('confluence', data.confluence);
-            }} catch (e) {{
+            } catch (e) {
                 console.error('Error testing connections:', e);
-            }}
-        }}
+            }
+        }
         
-        function updateConnectionStatus(service, status) {{
-            const statusEl = document.getElementById(`${{service}}-connection-status`);
+        function updateConnectionStatus(service, status) {
+            const statusEl = document.getElementById(`${service}-connection-status`);
             const indicator = statusEl.querySelector('.status-indicator');
             const text = statusEl.querySelector('span:last-child');
             
-            if (status?.connected) {{
+            if (status?.connected) {
                 indicator.className = 'status-indicator connected';
-                text.textContent = `Connected as ${{status.user}}`;
-            }} else if (status?.configured) {{
+                text.textContent = `Connected as ${status.user}`;
+            } else if (status?.configured) {
                 indicator.className = 'status-indicator error';
                 text.textContent = 'Connection failed';
-            }} else {{
+            } else {
                 indicator.className = 'status-indicator';
                 text.textContent = 'Not configured';
-            }}
-        }}
+            }
+        }
         
         // Test individual connections
-        async function testJira() {{
+        async function testJira() {
             showToast('Testing Jira connection...', '');
             await testConnections();
-        }}
+        }
         
-        async function testConfluence() {{
+        async function testConfluence() {
             showToast('Testing Confluence connection...', '');
             await testConnections();
-        }}
+        }
         
         // Form submissions
-        document.getElementById('jira-form').addEventListener('submit', async (e) => {{
+        document.getElementById('jira-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const formData = new FormData(e.target);
             
-            try {{
-                const response = await fetch('/api/credentials/jira', {{
+            try {
+                const response = await fetch('/api/credentials/jira', {
                     method: 'POST',
-                    headers: {{ 'Content-Type': 'application/json' }},
-                    body: JSON.stringify({{
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
                         url: formData.get('jira_url'),
                         email: formData.get('jira_email'),
                         project: formData.get('jira_project'),
                         token: formData.get('jira_token')
-                    }})
-                }});
+                    })
+                });
                 
-                if (response.ok) {{
+                if (response.ok) {
                     showToast('Jira settings saved successfully!', 'success');
                     testConnections();
-                }} else {{
+                } else {
                     const err = await response.json();
                     showToast(err.detail || 'Failed to save settings', 'error');
-                }}
-            }} catch (e) {{
+                }
+            } catch (e) {
                 showToast('Error saving settings', 'error');
-            }}
-        }});
+            }
+        });
         
-        document.getElementById('confluence-form').addEventListener('submit', async (e) => {{
+        document.getElementById('confluence-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const formData = new FormData(e.target);
             
-            try {{
-                const response = await fetch('/api/credentials/confluence', {{
+            try {
+                const response = await fetch('/api/credentials/confluence', {
                     method: 'POST',
-                    headers: {{ 'Content-Type': 'application/json' }},
-                    body: JSON.stringify({{
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
                         url: formData.get('confluence_url'),
                         email: formData.get('confluence_email'),
                         space: formData.get('confluence_space'),
                         token: formData.get('confluence_token')
-                    }})
-                }});
+                    })
+                });
                 
-                if (response.ok) {{
+                if (response.ok) {
                     showToast('Confluence settings saved successfully!', 'success');
                     testConnections();
-                }} else {{
+                } else {
                     const err = await response.json();
                     showToast(err.detail || 'Failed to save settings', 'error');
-                }}
-            }} catch (e) {{
+                }
+            } catch (e) {
                 showToast('Error saving settings', 'error');
-            }}
-        }});
+            }
+        });
         
-        document.getElementById('openai-form').addEventListener('submit', async (e) => {{
+        document.getElementById('openai-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const formData = new FormData(e.target);
             
-            try {{
-                const response = await fetch('/api/credentials/openai', {{
+            try {
+                const response = await fetch('/api/credentials/openai', {
                     method: 'POST',
-                    headers: {{ 'Content-Type': 'application/json' }},
-                    body: JSON.stringify({{
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
                         key: formData.get('openai_key')
-                    }})
-                }});
+                    })
+                });
                 
-                if (response.ok) {{
+                if (response.ok) {
                     showToast('OpenAI key saved successfully!', 'success');
-                }} else {{
+                } else {
                     const err = await response.json();
                     showToast(err.detail || 'Failed to save key', 'error');
-                }}
-            }} catch (e) {{
+                }
+            } catch (e) {
                 showToast('Error saving key', 'error');
-            }}
-        }});
+            }
+        });
         
         // Clear credentials
-        async function clearCredentials() {{
-            if (!confirm('Are you sure you want to clear all stored credentials? This cannot be undone.')) {{
+        async function clearCredentials() {
+            if (!confirm('Are you sure you want to clear all stored credentials? This cannot be undone.')) {
                 return;
-            }}
+            }
             
-            try {{
-                const response = await fetch('/api/credentials', {{ method: 'DELETE' }});
-                if (response.ok) {{
+            try {
+                const response = await fetch('/api/credentials', { method: 'DELETE' });
+                if (response.ok) {
                     showToast('All credentials cleared', 'success');
                     testConnections();
                     // Clear form fields
                     document.querySelectorAll('input').forEach(input => input.value = '');
-                }} else {{
+                } else {
                     showToast('Failed to clear credentials', 'error');
-                }}
-            }} catch (e) {{
+                }
+            } catch (e) {
                 showToast('Error clearing credentials', 'error');
-            }}
-        }}
+            }
+        }
         
         // Toggle password visibility
-        function togglePassword(inputId) {{
+        function togglePassword(inputId) {
             const input = document.getElementById(inputId);
             input.type = input.type === 'password' ? 'text' : 'password';
-        }}
+        }
         
         // Toast notification
-        function showToast(message, type = '') {{
+        function showToast(message, type = '') {
             const toast = document.getElementById('toast');
             toast.textContent = message;
-            toast.className = `toast show ${{type}}`;
+            toast.className = `toast show ${type}`;
             
-            setTimeout(() => {{
+            setTimeout(() => {
                 toast.className = 'toast';
-            }}, 3000);
-        }}
+            }, 3000);
+        }
         
         // Initialize
         loadConfig();
@@ -1621,4 +1621,3 @@ def get_admin_html() -> str:
 </body>
 </html>
 """
-

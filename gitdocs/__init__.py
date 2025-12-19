@@ -7,4 +7,3 @@ documentation directly from the terminal with a neovim-like workflow.
 
 __version__ = "0.1.0"
 __author__ = "gitdocs team"
-

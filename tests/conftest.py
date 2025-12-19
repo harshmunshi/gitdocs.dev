@@ -2,7 +2,7 @@
 
 import tempfile
 from pathlib import Path
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
 
 import pytest
 
@@ -18,7 +18,7 @@ def temp_dir():
 def mock_git_repo(temp_dir):
     """Create a mock git repository."""
     import subprocess
-    
+
     # Initialize git repo
     subprocess.run(["git", "init"], cwd=temp_dir, capture_output=True)
     subprocess.run(
@@ -31,7 +31,7 @@ def mock_git_repo(temp_dir):
         cwd=temp_dir,
         capture_output=True,
     )
-    
+
     # Create initial commit
     readme = temp_dir / "README.md"
     readme.write_text("# Test Repo")
@@ -41,7 +41,7 @@ def mock_git_repo(temp_dir):
         cwd=temp_dir,
         capture_output=True,
     )
-    
+
     yield temp_dir
 
 
@@ -148,4 +148,3 @@ confluence:
     config_path = temp_dir / ".gitdocs.yml"
     config_path.write_text(config_content)
     return config_path
-

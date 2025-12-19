@@ -1,21 +1,19 @@
 """gitdocs auth commands - authentication management."""
 
-from typing import Optional
-
 import typer
 from rich.console import Console
-from rich.prompt import Prompt
 from rich.panel import Panel
+from rich.prompt import Prompt
 
-from gitdocs.core.secrets import (
-    set_jira_api_token,
-    set_confluence_api_token,
-    set_openai_api_key,
-    get_jira_api_token,
-    get_confluence_api_token,
-    get_openai_api_key,
-)
 from gitdocs.core.errors import AuthError
+from gitdocs.core.secrets import (
+    get_confluence_api_token,
+    get_jira_api_token,
+    get_openai_api_key,
+    set_confluence_api_token,
+    set_jira_api_token,
+    set_openai_api_key,
+)
 
 console = Console()
 
@@ -31,7 +29,7 @@ def login_command(
         ...,
         help="Service to authenticate: jira, confluence, or openai",
     ),
-    token: Optional[str] = typer.Option(
+    token: str | None = typer.Option(
         None,
         "--token",
         "-t",
@@ -40,38 +38,42 @@ def login_command(
 ) -> None:
     """
     Store API credentials for a service.
-    
+
     Examples:
-    
+
         gitdocs auth login jira
         gitdocs auth login confluence --token YOUR_TOKEN
         gitdocs auth login openai
     """
     service = service.lower()
-    
+
     if service not in ("jira", "confluence", "openai"):
         console.print(f"[red]Unknown service:[/] {service}")
         console.print("Valid services: jira, confluence, openai")
         raise typer.Exit(1)
-    
+
     if not token:
         if service == "jira":
             console.print("[dim]Create an API token at:[/]")
-            console.print("[link]https://id.atlassian.com/manage-profile/security/api-tokens[/link]\n")
+            console.print(
+                "[link]https://id.atlassian.com/manage-profile/security/api-tokens[/link]\n"
+            )
             token = Prompt.ask("Enter Jira API token", password=True)
         elif service == "confluence":
             console.print("[dim]Create an API token at:[/]")
-            console.print("[link]https://id.atlassian.com/manage-profile/security/api-tokens[/link]\n")
+            console.print(
+                "[link]https://id.atlassian.com/manage-profile/security/api-tokens[/link]\n"
+            )
             token = Prompt.ask("Enter Confluence API token", password=True)
         else:
             console.print("[dim]Get your API key at:[/]")
             console.print("[link]https://platform.openai.com/api-keys[/link]\n")
             token = Prompt.ask("Enter OpenAI API key", password=True)
-    
+
     if not token:
         console.print("[red]No token provided.[/]")
         raise typer.Exit(1)
-    
+
     try:
         if service == "jira":
             set_jira_api_token(token)
@@ -79,9 +81,9 @@ def login_command(
             set_confluence_api_token(token)
         else:
             set_openai_api_key(token)
-        
+
         console.print(f"[green]✓[/] {service.title()} credentials stored successfully.")
-        
+
     except Exception as e:
         console.print(f"[red]Error storing credentials:[/] {e}")
         raise typer.Exit(1)
@@ -93,7 +95,7 @@ def status_command() -> None:
     Check authentication status for all services.
     """
     console.print(Panel.fit("[bold]Authentication Status[/]", border_style="cyan"))
-    
+
     # Check Jira
     try:
         token = get_jira_api_token()
@@ -101,7 +103,7 @@ def status_command() -> None:
         console.print(f"  [green]✓[/] Jira: configured ({masked})")
     except AuthError:
         console.print("  [yellow]○[/] Jira: not configured")
-    
+
     # Check Confluence
     try:
         token = get_confluence_api_token()
@@ -109,7 +111,7 @@ def status_command() -> None:
         console.print(f"  [green]✓[/] Confluence: configured ({masked})")
     except AuthError:
         console.print("  [yellow]○[/] Confluence: not configured")
-    
+
     # Check OpenAI
     key = get_openai_api_key()
     if key:
@@ -121,7 +123,7 @@ def status_command() -> None:
 
 @app.command(name="test")
 def test_command(
-    service: Optional[str] = typer.Argument(
+    service: str | None = typer.Argument(
         None,
         help="Service to test: jira, confluence, or all",
     ),
@@ -129,10 +131,10 @@ def test_command(
     """
     Test API connectivity with stored credentials.
     """
-    from gitdocs.core.app import get_context
-    from gitdocs.atlassian.jira_api import JiraAPI
     from gitdocs.atlassian.confluence_api import ConfluenceAPI
-    
+    from gitdocs.atlassian.jira_api import JiraAPI
+    from gitdocs.core.app import get_context
+
     services_to_test = []
     if service:
         service = service.lower()
@@ -145,45 +147,44 @@ def test_command(
             raise typer.Exit(1)
     else:
         services_to_test = ["jira", "confluence"]
-    
+
     try:
         ctx = get_context()
     except Exception as e:
         console.print(f"[red]Error loading config:[/] {e}")
         raise typer.Exit(1)
-    
+
     all_passed = True
-    
+
     for svc in services_to_test:
         console.print(f"\n[bold]Testing {svc.title()}...[/]")
-        
+
         try:
             if svc == "jira":
                 if not ctx.config.jira:
                     console.print("  [yellow]○[/] Jira not configured")
                     continue
-                
-                api = JiraAPI(ctx.jira)
-                user = api.test_connection()
+
+                jira_api = JiraAPI(ctx.jira)
+                user = jira_api.test_connection()
                 console.print(f"  [green]✓[/] Connected as: {user.get('displayName', 'Unknown')}")
                 console.print(f"  [dim]Email: {user.get('emailAddress', 'N/A')}[/]")
-                
+
             elif svc == "confluence":
                 if not ctx.config.confluence:
                     console.print("  [yellow]○[/] Confluence not configured")
                     continue
-                
-                api = ConfluenceAPI(ctx.confluence)
-                user = api.test_connection()
+
+                confluence_api = ConfluenceAPI(ctx.confluence)
+                user = confluence_api.test_connection()
                 console.print(f"  [green]✓[/] Connected as: {user.get('displayName', 'Unknown')}")
-                
+
         except Exception as e:
             console.print(f"  [red]✗[/] Connection failed: {e}")
             all_passed = False
-    
+
     if all_passed:
         console.print("\n[green]All tests passed![/]")
     else:
         console.print("\n[yellow]Some tests failed.[/]")
         raise typer.Exit(1)
-

@@ -1,7 +1,5 @@
 """gitdocs serve command - local web UI server."""
 
-from typing import Optional
-
 import typer
 from rich.console import Console
 
@@ -35,33 +33,34 @@ def serve_command(
 ) -> None:
     """
     Start the local configuration web server.
-    
+
     Provides a web interface for:
     - Viewing and editing configuration
-    - Managing API keys and repo bindings  
+    - Managing API keys and repo bindings
     - Editing documentation style guides
     - Testing API connectivity
-    
+
     Example:
-    
+
         gitdocs serve
         gitdocs serve --port 9000 --no-open
     """
-    import uvicorn
     import webbrowser
     from threading import Timer
-    
-    console.print(f"[bold cyan]Starting gitdocs server...[/]")
+
+    import uvicorn
+
+    console.print("[bold cyan]Starting gitdocs server...[/]")
     console.print(f"  URL: [link]http://{host}:{port}[/link]")
-    console.print(f"  Press [bold]Ctrl+C[/] to stop\n")
-    
+    console.print("  Press [bold]Ctrl+C[/] to stop\n")
+
     def open_browser_delayed():
         webbrowser.open(f"http://{host}:{port}")
-    
+
     if open_browser:
         # Open browser after a short delay
         Timer(1.5, open_browser_delayed).start()
-    
+
     try:
         uvicorn.run(
             "gitdocs.web.server:app",
@@ -72,4 +71,3 @@ def serve_command(
         )
     except KeyboardInterrupt:
         console.print("\n[yellow]Server stopped.[/]")
-
