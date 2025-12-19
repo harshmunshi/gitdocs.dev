@@ -78,4 +78,3 @@ class ValidationError(GitDocsError):
     """Data validation errors."""
 
     pass
-

@@ -3,4 +3,3 @@
 from gitdocs.tui.main import GitDocsTUI
 
 __all__ = ["GitDocsTUI"]
-

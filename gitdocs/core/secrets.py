@@ -5,10 +5,9 @@ import hashlib
 import json
 import logging
 import os
-from pathlib import Path
 
-from gitdocs.core.paths import get_credentials_path
 from gitdocs.core.errors import AuthError
+from gitdocs.core.paths import get_credentials_path
 
 logger = logging.getLogger(__name__)
 
@@ -27,6 +26,7 @@ def _get_keyring():
     """Get keyring module if available."""
     try:
         import keyring
+
         # Test if keyring backend is available
         keyring.get_keyring()
         return keyring
@@ -39,7 +39,7 @@ def _get_machine_key() -> bytes:
     # Use a combination of username and machine ID for basic encryption
     import getpass
     import platform
-    
+
     key_material = f"{getpass.getuser()}-{platform.node()}-gitdocs"
     return hashlib.sha256(key_material.encode()).digest()
 
@@ -64,7 +64,7 @@ def _load_fallback_credentials() -> dict[str, str]:
     creds_path = get_credentials_path()
     if not creds_path.exists():
         return {}
-    
+
     try:
         encrypted = creds_path.read_text()
         decrypted = _simple_decrypt(encrypted)
@@ -90,14 +90,14 @@ def _save_fallback_credentials(creds: dict[str, str]) -> None:
 def set_secret(service: str, username: str, secret: str) -> None:
     """
     Store a secret using keyring or fallback to encrypted file.
-    
+
     Args:
         service: Service identifier (e.g., 'gitdocs-jira')
         username: Username/key for the secret
         secret: The secret value to store
     """
     keyring = _get_keyring()
-    
+
     if keyring:
         try:
             keyring.set_password(service, username, secret)
@@ -105,7 +105,7 @@ def set_secret(service: str, username: str, secret: str) -> None:
             return
         except Exception as e:
             logger.warning(f"Keyring failed, using fallback: {e}")
-    
+
     # Fallback to encrypted file
     creds = _load_fallback_credentials()
     creds[f"{service}:{username}"] = secret
@@ -116,16 +116,16 @@ def set_secret(service: str, username: str, secret: str) -> None:
 def get_secret(service: str, username: str) -> str | None:
     """
     Retrieve a secret from keyring or fallback.
-    
+
     Args:
         service: Service identifier
         username: Username/key for the secret
-        
+
     Returns:
         The secret value or None if not found.
     """
     keyring = _get_keyring()
-    
+
     if keyring:
         try:
             secret = keyring.get_password(service, username)
@@ -133,7 +133,7 @@ def get_secret(service: str, username: str) -> str | None:
                 return secret
         except Exception as e:
             logger.warning(f"Keyring retrieval failed: {e}")
-    
+
     # Try fallback
     creds = _load_fallback_credentials()
     return creds.get(f"{service}:{username}")
@@ -142,13 +142,13 @@ def get_secret(service: str, username: str) -> str | None:
 def delete_secret(service: str, username: str) -> None:
     """Delete a secret from storage."""
     keyring = _get_keyring()
-    
+
     if keyring:
         try:
             keyring.delete_password(service, username)
         except Exception:
             pass
-    
+
     # Also try to remove from fallback
     creds = _load_fallback_credentials()
     key = f"{service}:{username}"
@@ -162,11 +162,11 @@ def get_jira_api_token() -> str:
     # Check environment first
     if token := os.environ.get(ENV_JIRA_TOKEN):
         return token
-    
+
     # Check keyring/fallback
     if token := get_secret(JIRA_SERVICE, "api_token"):
         return token
-    
+
     raise AuthError(
         "Jira API token not found. "
         f"Set {ENV_JIRA_TOKEN} environment variable or run 'gitdocs auth login'"
@@ -183,11 +183,11 @@ def get_confluence_api_token() -> str:
     # Check environment first
     if token := os.environ.get(ENV_CONFLUENCE_TOKEN):
         return token
-    
+
     # Check keyring/fallback
     if token := get_secret(CONFLUENCE_SERVICE, "api_token"):
         return token
-    
+
     raise AuthError(
         "Confluence API token not found. "
         f"Set {ENV_CONFLUENCE_TOKEN} environment variable or run 'gitdocs auth login'"
@@ -203,10 +203,10 @@ def get_openai_api_key() -> str | None:
     """Get OpenAI API key from environment or secure storage."""
     if key := os.environ.get(ENV_OPENAI_KEY):
         return key
-    
+
     if key := os.environ.get("OPENAI_API_KEY"):
         return key
-    
+
     return get_secret(OPENAI_SERVICE, "api_key")
 
 
@@ -224,7 +224,7 @@ def clear_all_secrets() -> None:
             delete_secret(service, "api_key")
         except Exception:
             pass
-    
+
     # Clear fallback file
     creds_path = get_credentials_path()
     if creds_path.exists():
@@ -234,42 +234,41 @@ def clear_all_secrets() -> None:
 class SecretsManager:
     """
     High-level interface for managing secrets.
-    
+
     Provides a convenient class-based API for storing and retrieving
     API tokens and credentials.
     """
-    
+
     def get_jira_token(self, base_url: str | None = None) -> str | None:
         """Get Jira API token."""
         try:
             return get_jira_api_token()
         except AuthError:
             return None
-    
+
     def store_jira_token(self, base_url: str, token: str) -> None:
         """Store Jira API token."""
         set_jira_api_token(token)
-    
+
     def get_confluence_token(self, base_url: str | None = None) -> str | None:
         """Get Confluence API token."""
         try:
             return get_confluence_api_token()
         except AuthError:
             return None
-    
+
     def store_confluence_token(self, base_url: str, token: str) -> None:
         """Store Confluence API token."""
         set_confluence_api_token(token)
-    
+
     def get_openai_key(self) -> str | None:
         """Get OpenAI API key."""
         return get_openai_api_key()
-    
+
     def store_openai_key(self, key: str) -> None:
         """Store OpenAI API key."""
         set_openai_api_key(key)
-    
+
     def clear_all(self) -> None:
         """Clear all stored secrets."""
         clear_all_secrets()
-

@@ -5,90 +5,90 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
-
 # =============================================================================
 # Jira Models
 # =============================================================================
 
+
 class JiraUser(BaseModel):
     """Jira user representation."""
-    
-    account_id: str = Field(alias="accountId")
-    display_name: str = Field(alias="displayName")
-    email_address: str | None = Field(None, alias="emailAddress")
-    avatar_url: str | None = Field(None, alias="avatarUrls")
-    
+
+    account_id: str = Field(default="", alias="accountId")
+    display_name: str = Field(default="", alias="displayName")
+    email_address: str | None = Field(default=None, alias="emailAddress")
+    avatar_url: str | None = Field(default=None, alias="avatarUrls")
+
     class Config:
         populate_by_name = True
 
 
 class JiraStatus(BaseModel):
     """Jira issue status."""
-    
+
     id: str
     name: str
     status_category: str | None = Field(None, alias="statusCategory")
-    
+
     class Config:
         populate_by_name = True
 
 
 class JiraPriority(BaseModel):
     """Jira issue priority."""
-    
+
     id: str
     name: str
     icon_url: str | None = Field(None, alias="iconUrl")
-    
+
     class Config:
         populate_by_name = True
 
 
 class JiraIssueType(BaseModel):
     """Jira issue type."""
-    
+
     id: str
     name: str
     icon_url: str | None = Field(None, alias="iconUrl")
     subtask: bool = False
-    
+
     class Config:
         populate_by_name = True
 
 
 class JiraProject(BaseModel):
     """Jira project."""
-    
+
     id: str
     key: str
     name: str
-    
+
     class Config:
         populate_by_name = True
 
 
 class JiraSprint(BaseModel):
     """Jira sprint."""
-    
+
     id: int
     name: str
     state: str
     start_date: datetime | None = Field(None, alias="startDate")
     end_date: datetime | None = Field(None, alias="endDate")
-    
+
     class Config:
         populate_by_name = True
 
 
 class JiraIssue(BaseModel):
     """Jira issue representation."""
-    
-    id: str
-    key: str
-    summary: str
+
+    id: str = ""
+    key: str = ""
+    summary: str = ""
     description: str | None = None
     status: JiraStatus | None = None
-    issue_type: JiraIssueType | None = Field(None, alias="issuetype")
+    issue_type: JiraIssueType | None = Field(default=None, alias="issuetype")
     priority: JiraPriority | None = None
     assignee: JiraUser | None = None
     reporter: JiraUser | None = None
@@ -98,21 +98,21 @@ class JiraIssue(BaseModel):
     labels: list[str] = Field(default_factory=list)
     components: list[str] = Field(default_factory=list)
     sprint: JiraSprint | None = None
-    story_points: float | None = Field(None, alias="storyPoints")
-    parent_key: str | None = Field(None, alias="parentKey")
+    story_points: float | None = Field(default=None, alias="storyPoints")
+    parent_key: str | None = Field(default=None, alias="parentKey")
     subtasks: list[str] = Field(default_factory=list)
-    
+
     # Raw fields for additional data
     raw: dict[str, Any] = Field(default_factory=dict)
-    
+
     class Config:
         populate_by_name = True
-    
+
     @classmethod
     def from_api_response(cls, data: dict[str, Any]) -> "JiraIssue":
         """Parse a Jira issue from API response."""
         fields = data.get("fields", {})
-        
+
         # Extract status
         status = None
         if status_data := fields.get("status"):
@@ -121,7 +121,7 @@ class JiraIssue(BaseModel):
                 name=status_data.get("name", ""),
                 statusCategory=status_data.get("statusCategory", {}).get("name"),
             )
-        
+
         # Extract issue type
         issue_type = None
         if type_data := fields.get("issuetype"):
@@ -131,7 +131,7 @@ class JiraIssue(BaseModel):
                 iconUrl=type_data.get("iconUrl"),
                 subtask=type_data.get("subtask", False),
             )
-        
+
         # Extract priority
         priority = None
         if priority_data := fields.get("priority"):
@@ -140,7 +140,7 @@ class JiraIssue(BaseModel):
                 name=priority_data.get("name", ""),
                 iconUrl=priority_data.get("iconUrl"),
             )
-        
+
         # Extract assignee
         assignee = None
         if assignee_data := fields.get("assignee"):
@@ -149,7 +149,7 @@ class JiraIssue(BaseModel):
                 displayName=assignee_data.get("displayName", ""),
                 emailAddress=assignee_data.get("emailAddress"),
             )
-        
+
         # Extract reporter
         reporter = None
         if reporter_data := fields.get("reporter"):
@@ -158,7 +158,7 @@ class JiraIssue(BaseModel):
                 displayName=reporter_data.get("displayName", ""),
                 emailAddress=reporter_data.get("emailAddress"),
             )
-        
+
         # Extract project
         project = None
         if project_data := fields.get("project"):
@@ -167,33 +167,27 @@ class JiraIssue(BaseModel):
                 key=project_data.get("key", ""),
                 name=project_data.get("name", ""),
             )
-        
-        # Extract sprint from custom field
-        sprint = None
-        for field_key, field_value in fields.items():
-            if field_key.startswith("customfield_") and isinstance(field_value, list):
-                for item in field_value:
-                    if isinstance(item, dict) and "sprintId" in str(item):
-                        # Attempt to parse sprint data
-                        pass
-        
+
+        # Extract sprint from custom field (placeholder for future implementation)
+        # Sprint parsing from custom fields would be done here
+
         # Extract labels and components
         labels = fields.get("labels", [])
         components = [c.get("name", "") for c in fields.get("components", [])]
-        
+
         # Extract subtasks
         subtasks = [st.get("key", "") for st in fields.get("subtasks", [])]
-        
+
         # Extract parent
         parent_key = None
         if parent := fields.get("parent"):
             parent_key = parent.get("key")
-        
+
         # Handle description - can be string or ADF (Atlassian Document Format)
         description = fields.get("description")
         if isinstance(description, dict):
             description = _extract_text_from_adf(description)
-        
+
         return cls(
             id=data.get("id", ""),
             key=data.get("key", ""),
@@ -217,16 +211,16 @@ class JiraIssue(BaseModel):
 
 class JiraComment(BaseModel):
     """Jira issue comment."""
-    
+
     id: str
     body: str
     author: JiraUser | None = None
     created: datetime | None = None
     updated: datetime | None = None
-    
+
     class Config:
         populate_by_name = True
-    
+
     @classmethod
     def from_api_response(cls, data: dict[str, Any]) -> "JiraComment":
         """Parse a comment from API response."""
@@ -236,13 +230,13 @@ class JiraComment(BaseModel):
                 accountId=author_data.get("accountId", ""),
                 displayName=author_data.get("displayName", ""),
             )
-        
+
         # Handle body that could be ADF or plain text
         body = data.get("body", "")
         if isinstance(body, dict):
             # Extract text from ADF format
             body = _extract_text_from_adf(body)
-        
+
         return cls(
             id=data.get("id", ""),
             body=body,
@@ -254,23 +248,23 @@ class JiraComment(BaseModel):
 
 class JiraTransition(BaseModel):
     """Jira workflow transition."""
-    
+
     id: str
     name: str
     to_status: JiraStatus | None = Field(None, alias="to")
-    
+
     class Config:
         populate_by_name = True
 
 
 class JiraSearchResult(BaseModel):
     """Jira search (JQL) result."""
-    
+
     issues: list[JiraIssue]
     total: int
     start_at: int = Field(alias="startAt")
     max_results: int = Field(alias="maxResults")
-    
+
     class Config:
         populate_by_name = True
 
@@ -279,64 +273,65 @@ class JiraSearchResult(BaseModel):
 # Confluence Models
 # =============================================================================
 
+
 class ConfluenceUser(BaseModel):
     """Confluence user representation."""
-    
+
     account_id: str = Field(alias="accountId")
     display_name: str = Field("", alias="displayName")
     email: str | None = None
-    
+
     class Config:
         populate_by_name = True
 
 
 class ConfluenceSpace(BaseModel):
     """Confluence space."""
-    
-    id: str
-    key: str
-    name: str
+
+    id: str = ""
+    key: str = ""
+    name: str = ""
     type: str = "global"
-    homepage_id: str | None = Field(None, alias="homepageId")
-    
+    homepage_id: str | None = Field(default=None, alias="homepageId")
+
     class Config:
         populate_by_name = True
 
 
 class ConfluenceVersion(BaseModel):
     """Confluence page version."""
-    
-    number: int
+
+    number: int = 1
     message: str = ""
-    created_at: datetime | None = Field(None, alias="createdAt")
+    created_at: datetime | None = Field(default=None, alias="createdAt")
     author: ConfluenceUser | None = None
-    
+
     class Config:
         populate_by_name = True
 
 
 class ConfluencePage(BaseModel):
     """Confluence page representation."""
-    
-    id: str
-    title: str
-    space_id: str | None = Field(None, alias="spaceId")
-    parent_id: str | None = Field(None, alias="parentId")
+
+    id: str = ""
+    title: str = ""
+    space_id: str | None = Field(default=None, alias="spaceId")
+    parent_id: str | None = Field(default=None, alias="parentId")
     status: str = "current"
     body: str = ""  # Storage format or converted markdown
     version: ConfluenceVersion | None = None
-    created_at: datetime | None = Field(None, alias="createdAt")
+    created_at: datetime | None = Field(default=None, alias="createdAt")
     author: ConfluenceUser | None = None
-    
+
     # For tree navigation
     children: list["ConfluencePage"] = Field(default_factory=list)
-    
+
     # Raw data
     raw: dict[str, Any] = Field(default_factory=dict)
-    
+
     class Config:
         populate_by_name = True
-    
+
     @classmethod
     def from_api_response(cls, data: dict[str, Any]) -> "ConfluencePage":
         """Parse a page from Confluence API v2 response."""
@@ -351,7 +346,7 @@ class ConfluencePage(BaseModel):
                 createdAt=version_data.get("createdAt"),
                 author=author,
             )
-        
+
         # Extract body - prefer storage format
         body = ""
         if body_data := data.get("body"):
@@ -359,7 +354,7 @@ class ConfluencePage(BaseModel):
                 body = storage.get("value", "")
             elif view := body_data.get("view"):
                 body = view.get("value", "")
-        
+
         return cls(
             id=data.get("id", ""),
             title=data.get("title", ""),
@@ -375,7 +370,7 @@ class ConfluencePage(BaseModel):
 
 class ConfluencePageTree(BaseModel):
     """Tree structure of Confluence pages."""
-    
+
     root_pages: list[ConfluencePage] = Field(default_factory=list)
     total_pages: int = 0
 
@@ -384,10 +379,11 @@ class ConfluencePageTree(BaseModel):
 # Helpers
 # =============================================================================
 
+
 def _extract_text_from_adf(adf: dict[str, Any]) -> str:
     """Extract plain text from Atlassian Document Format."""
     text_parts: list[str] = []
-    
+
     def extract_recursive(node: dict[str, Any] | list[Any]) -> None:
         if isinstance(node, list):
             for item in node:
@@ -397,7 +393,6 @@ def _extract_text_from_adf(adf: dict[str, Any]) -> str:
                 text_parts.append(node.get("text", ""))
             if "content" in node:
                 extract_recursive(node["content"])
-    
+
     extract_recursive(adf)
     return "".join(text_parts)
-

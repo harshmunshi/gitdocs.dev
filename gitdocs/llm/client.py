@@ -3,7 +3,6 @@
 import logging
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Optional
 
 from gitdocs.core.config import LLMConfig
 from gitdocs.core.errors import LLMError
@@ -14,17 +13,17 @@ logger = logging.getLogger(__name__)
 @dataclass
 class TicketSuggestion:
     """Suggested ticket update."""
-    
+
     ticket_key: str
     comment: str
     confidence: float
-    reasoning: Optional[str] = None
+    reasoning: str | None = None
 
 
 @dataclass
 class DocSuggestion:
     """Suggested documentation update."""
-    
+
     page_title: str
     summary: str
     suggested_changes: str
@@ -33,47 +32,47 @@ class DocSuggestion:
 
 class LLMClient(ABC):
     """Abstract base class for LLM clients."""
-    
+
     @abstractmethod
     def suggest_ticket_update(
         self,
         ticket_key: str,
         commits: str,
         diff_summary: str,
-        ticket_context: Optional[str] = None,
-    ) -> Optional[TicketSuggestion]:
+        ticket_context: str | None = None,
+    ) -> TicketSuggestion | None:
         """
         Generate a suggested Jira comment based on commits.
-        
+
         Args:
             ticket_key: The ticket being updated
             commits: Summary of related commits
             diff_summary: Summary of code changes
             ticket_context: Optional existing ticket description/comments
-            
+
         Returns:
             TicketSuggestion if confident enough, None otherwise
         """
         pass
-    
+
     @abstractmethod
     def suggest_doc_update(
         self,
         page_content: str,
         code_changes: str,
-    ) -> Optional[DocSuggestion]:
+    ) -> DocSuggestion | None:
         """
         Suggest documentation updates based on code changes.
-        
+
         Args:
             page_content: Current documentation content
             code_changes: Summary of related code changes
-            
+
         Returns:
             DocSuggestion if relevant updates found
         """
         pass
-    
+
     @abstractmethod
     def classify_commit(
         self,
@@ -82,11 +81,11 @@ class LLMClient(ABC):
     ) -> dict:
         """
         Classify a commit for ticket matching.
-        
+
         Args:
             message: Commit message
             diff: Commit diff
-            
+
         Returns:
             Classification dict with type, scope, etc.
         """
@@ -95,7 +94,7 @@ class LLMClient(ABC):
 
 class OpenAIClient(LLMClient):
     """OpenAI-based LLM client."""
-    
+
     def __init__(
         self,
         api_key: str,
@@ -106,7 +105,7 @@ class OpenAIClient(LLMClient):
     ) -> None:
         """
         Initialize OpenAI client.
-        
+
         Args:
             api_key: OpenAI API key
             model: Model to use
@@ -116,15 +115,16 @@ class OpenAIClient(LLMClient):
         """
         try:
             from openai import OpenAI
+
             self._client = OpenAI(api_key=api_key)
         except ImportError:
             raise LLMError("OpenAI package not installed. Run: pip install openai")
-        
+
         self.model = model
         self.temperature = temperature
         self.confidence_threshold = confidence_threshold
         self.max_tokens = max_tokens
-    
+
     def _chat(
         self,
         system_prompt: str,
@@ -145,14 +145,14 @@ class OpenAIClient(LLMClient):
         except Exception as e:
             logger.error(f"OpenAI API error: {e}")
             raise LLMError(f"OpenAI API error: {e}")
-    
+
     def suggest_ticket_update(
         self,
         ticket_key: str,
         commits: str,
         diff_summary: str,
-        ticket_context: Optional[str] = None,
-    ) -> Optional[TicketSuggestion]:
+        ticket_context: str | None = None,
+    ) -> TicketSuggestion | None:
         """Generate ticket update suggestion."""
         system_prompt = """You are a developer assistant that helps write Jira ticket comments.
 Your goal is to summarize code changes in a clear, professional way for the ticket.
@@ -167,7 +167,7 @@ Guidelines:
 Respond with ONLY the comment text, no extra formatting or explanation.
 If the commits don't seem related to meaningful work, respond with "NO_SUGGESTION".
 """
-        
+
         user_prompt = f"""Ticket: {ticket_key}
 
 Related commits:
@@ -179,19 +179,19 @@ Code changes summary:
 {f'Ticket context: {ticket_context}' if ticket_context else ''}
 
 Write a brief Jira comment summarizing what was done:"""
-        
+
         try:
             response = self._chat(system_prompt, user_prompt)
-            
+
             if "NO_SUGGESTION" in response:
                 return None
-            
+
             # Basic confidence estimation based on response quality
             confidence = 0.8 if len(response) > 50 else 0.6
-            
+
             if confidence < self.confidence_threshold:
                 return None
-            
+
             return TicketSuggestion(
                 ticket_key=ticket_key,
                 comment=response.strip(),
@@ -199,12 +199,12 @@ Write a brief Jira comment summarizing what was done:"""
             )
         except LLMError:
             return None
-    
+
     def suggest_doc_update(
         self,
         page_content: str,
         code_changes: str,
-    ) -> Optional[DocSuggestion]:
+    ) -> DocSuggestion | None:
         """Suggest documentation updates."""
         system_prompt = """You are a technical writer assistant.
 Analyze if documentation needs updates based on code changes.
@@ -216,7 +216,7 @@ CHANGES: [specific suggested edits]
 CONFIDENCE: [0.0-1.0]
 
 If no updates needed, respond with "NO_UPDATES_NEEDED"."""
-        
+
         user_prompt = f"""Current documentation:
 {page_content[:2000]}
 
@@ -224,20 +224,20 @@ Recent code changes:
 {code_changes}
 
 Analyze if documentation updates are needed:"""
-        
+
         try:
             response = self._chat(system_prompt, user_prompt)
-            
+
             if "NO_UPDATES_NEEDED" in response:
                 return None
-            
+
             # Parse response
             lines = response.strip().split("\n")
             title = ""
             summary = ""
             changes = ""
             confidence = 0.5
-            
+
             for line in lines:
                 if line.startswith("TITLE:"):
                     title = line.replace("TITLE:", "").strip()
@@ -250,10 +250,10 @@ Analyze if documentation updates are needed:"""
                         confidence = float(line.replace("CONFIDENCE:", "").strip())
                     except ValueError:
                         pass
-            
+
             if confidence < self.confidence_threshold:
                 return None
-            
+
             return DocSuggestion(
                 page_title=title,
                 summary=summary,
@@ -262,7 +262,7 @@ Analyze if documentation updates are needed:"""
             )
         except LLMError:
             return None
-    
+
     def classify_commit(
         self,
         message: str,
@@ -278,14 +278,15 @@ Respond with JSON:
   "breaking": true|false,
   "summary": "one-line summary"
 }"""
-        
+
         user_prompt = f"""Commit message: {message}
 
 Diff preview:
 {diff[:1000]}"""
-        
+
         try:
             import json
+
             response = self._chat(system_prompt, user_prompt)
             return json.loads(response)
         except Exception:
@@ -299,25 +300,25 @@ Diff preview:
 
 class MockLLMClient(LLMClient):
     """Mock LLM client for testing and when no LLM is configured."""
-    
+
     def suggest_ticket_update(
         self,
         ticket_key: str,
         commits: str,
         diff_summary: str,
-        ticket_context: Optional[str] = None,
-    ) -> Optional[TicketSuggestion]:
+        ticket_context: str | None = None,
+    ) -> TicketSuggestion | None:
         """Return None (no suggestions without real LLM)."""
         return None
-    
+
     def suggest_doc_update(
         self,
         page_content: str,
         code_changes: str,
-    ) -> Optional[DocSuggestion]:
+    ) -> DocSuggestion | None:
         """Return None."""
         return None
-    
+
     def classify_commit(
         self,
         message: str,
@@ -335,21 +336,21 @@ class MockLLMClient(LLMClient):
 def create_llm_client(config: LLMConfig) -> LLMClient:
     """
     Create an LLM client based on configuration.
-    
+
     Args:
         config: LLM configuration
-        
+
     Returns:
         Configured LLM client
     """
     from gitdocs.core.secrets import get_openai_api_key
-    
+
     if config.provider == "openai":
         api_key = get_openai_api_key()
         if not api_key:
             logger.warning("OpenAI API key not configured, using mock client")
             return MockLLMClient()
-        
+
         return OpenAIClient(
             api_key=api_key,
             model=config.model,
@@ -357,7 +358,6 @@ def create_llm_client(config: LLMConfig) -> LLMClient:
             confidence_threshold=config.confidence_threshold,
             max_tokens=config.max_tokens,
         )
-    
+
     logger.warning(f"Unknown LLM provider '{config.provider}', using mock client")
     return MockLLMClient()
-

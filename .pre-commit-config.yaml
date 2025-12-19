@@ -1,0 +1,47 @@
+# Pre-commit hooks configuration
+# Install: pre-commit install
+# Run manually: pre-commit run --all-files
+
+repos:
+  # isort - import sorting (runs first to organize imports)
+  - repo: https://github.com/pycqa/isort
+    rev: 5.13.2
+    hooks:
+      - id: isort
+        args: ["--profile", "black"]
+
+  # black - code formatting (after isort to avoid conflicts)
+  - repo: https://github.com/psf/black
+    rev: 24.10.0
+    hooks:
+      - id: black
+
+  # ruff - fast linting (after formatting)
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.8.3
+    hooks:
+      - id: ruff
+        args: ["--fix"]
+
+  # mypy - type checking
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.13.0
+    hooks:
+      - id: mypy
+        additional_dependencies:
+          - types-PyYAML>=6.0.12
+          - types-Markdown>=3.5.0
+          - pydantic>=2.5.0
+        args: ["--config-file=pyproject.toml"]
+        exclude: ^tests/
+
+  # pytest - run tests (last, most expensive)
+  - repo: local
+    hooks:
+      - id: pytest
+        name: pytest
+        entry: pytest
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-commit]

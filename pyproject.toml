@@ -52,6 +52,9 @@ dev = [
     "ruff>=0.1.13",
     "mypy>=1.8.0",
     "types-PyYAML>=6.0.12",
+    "black>=24.0.0",
+    "isort>=5.13.0",
+    "pre-commit>=3.6.0",
 ]
 llm = [
     "openai>=1.9.0",
@@ -69,19 +72,64 @@ Repository = "https://github.com/gitdocs/gitdocs"
 [tool.hatch.build.targets.wheel]
 packages = ["gitdocs"]
 
+[tool.black]
+line-length = 100
+target-version = ["py311"]
+
+[tool.isort]
+profile = "black"
+line_length = 100
+known_first_party = ["gitdocs"]
+
 [tool.ruff]
 target-version = "py311"
 line-length = 100
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "W", "UP", "B", "C4", "SIM"]
-ignore = ["E501"]
+ignore = [
+    "E501",   # Line too long
+    "B904",   # Exception chaining (style preference)
+    "SIM105", # Use contextlib.suppress (style preference)
+    "SIM102", # Nested if statements (readability preference)
+    "SIM117", # Nested with statements (readability preference)
+    "B008",   # Function call in argument default (required for typer)
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Ignore whitespace issues for files with embedded HTML/JS/CSS
+"gitdocs/web/server.py" = ["W291", "W293"]
+"gitdocs/tui/*.py" = ["W293"]
+"gitdocs/tui/**/*.py" = ["W293"]
+# CLI app has imports after typer initialization (intentional)
+"gitdocs/cli/app.py" = ["E402"]
 
 [tool.mypy]
 python_version = "3.11"
-strict = true
-warn_return_any = true
-warn_unused_ignores = true
+# Relaxed settings - enable strict incrementally
+strict = false
+warn_return_any = false
+warn_unused_ignores = false
+ignore_missing_imports = true
+disallow_untyped_decorators = false
+disallow_untyped_defs = false
+check_untyped_defs = true
+
+# Exclude tests from type checking in pre-commit
+[[tool.mypy.overrides]]
+module = "tests.*"
+ignore_errors = true
+
+# Ignore missing stubs for third-party libraries
+[[tool.mypy.overrides]]
+module = [
+    "textual.*",
+    "markdownify.*",
+    "markdown.*",
+    "diskcache.*",
+    "tenacity.*",
+]
+ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

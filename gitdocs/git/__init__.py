@@ -1,6 +1,5 @@
 """Git integration module."""
 
-from gitdocs.git.repo import GitRepo, Commit
+from gitdocs.git.repo import Commit, GitRepo
 
 __all__ = ["GitRepo", "Commit"]
-
