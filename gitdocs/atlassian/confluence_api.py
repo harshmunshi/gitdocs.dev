@@ -299,6 +299,7 @@ class ConfluenceAPI:
         """
         data: dict[str, Any] = {
             "id": page_id,
+            "status": "current",
             "title": title,
             "body": {
                 "representation": body_format,
